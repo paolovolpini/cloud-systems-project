@@ -11,7 +11,7 @@ resource "aws_instance" "control_plane" {
   iam_instance_profile   = aws_iam_instance_profile.control_plane.name
 
   
-  user_data = templatefile("${path.module}/templates/control_plane_userdata.tftpl", {
+  user_data = templatefile("${path.module}/control_plane_userdata.tftpl", {
     aws_region   = var.aws_region
     nlb_dns      = aws_lb.main.dns_name
     pod_cidr     = "10.244.0.0/16" # cidr di flannel
@@ -43,7 +43,7 @@ resource "aws_launch_template" "workers" {
   vpc_security_group_ids = [aws_security_group.k8s.id]
 
   # bisogna encodare in base64
-  user_data = base64encode(templatefile("${path.module}/templates/worker_userdata.tftpl", {
+  user_data = base64encode(templatefile("${path.module}/worker_userdata.tftpl", {
     aws_region   = var.aws_region
   }))
 
