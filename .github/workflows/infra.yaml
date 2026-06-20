@@ -75,9 +75,11 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Tell working directory
-        run: pwd
+        run: |
+          pwd
+          ls -la
         working-directory: infrastructure/opentofu
-        
+
       - name: tofu init
         run: tofu init
         working-directory: infrastructure/opentofu
