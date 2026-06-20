@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eux
 
+echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+
 apt-get update -y
 apt-get install -y apt-transport-https ca-certificates curl gnupg awscli
 
