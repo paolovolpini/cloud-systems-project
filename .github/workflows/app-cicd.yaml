@@ -22,9 +22,9 @@ jobs:
         with:
           filters: |
             backend:
-              - 'backend/**'
+              - 'application/backend/**'
             frontend:
-              - 'frontend/**'
+              - 'application/frontend/**'
 
       - name: AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -45,6 +45,7 @@ jobs:
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$TAG backend/
           docker push $REGISTRY/$REPOSITORY:$TAG
+        working-directory: application
 
       - name: Builds front-end image if edited
         if: steps.filter.outputs.frontend == 'true'
@@ -55,6 +56,7 @@ jobs:
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$TAG frontend/
           docker push $REGISTRY/$REPOSITORY:$TAG
+        working-directory: application
 
       - name: Generate manifests 
         run: |
@@ -78,9 +80,10 @@ jobs:
               --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
               --output text)
           fi
-          
+
           sed -i "s|REGISTRY_IP:5000/shortener-backend:TAG|$REGISTRY/shortener-backend:$TAG|g" k8s/backend-deployment.yaml
           sed -i "s|REGISTRY_IP:5000/shortener-frontend:TAG|$REGISTRY/shortener-frontend:$TAG|g" k8s/frontend-deployment.yaml
+        working-directory: application
 
       - name: Get kubeconfig
         run: |
@@ -93,7 +96,7 @@ jobs:
 
       - name: Apply manifests
         run: |
-          KUBECONFIG=./kubeconfig kubectl apply -f k8s/        
+          KUBECONFIG=./kubeconfig kubectl apply -f application/k8s/        
 
       - name: Check Kubernetes Rollout Status
         run: |

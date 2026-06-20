@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortener-frontend
+  labels:
+    app: shortener-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shortener-frontend
+  template:
+    metadata:
+      labels:
+        app: shortener-frontend
+    spec:
+      containers:
+        - name: shortener-frontend
+          image: REGISTRY_IP:5000/shortener-frontend:TAG 
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"    
+              cpu: "100m"
