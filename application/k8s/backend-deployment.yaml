@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortener-backend
+  labels:
+    app: shortener-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shortener-backend
+  template:
+    metadata:
+      labels:
+        app: shortener-backend
+    spec:
+      containers:
+        - name: shortener-backend
+          image: REGISTRY_IP:5000/shortener-backend:TAG
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "150Mi"   
+              cpu: "300m"
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: shortener
+            - name: DB_USER
+              value: shortener        
+            - name: DB_PASSWORD      
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password

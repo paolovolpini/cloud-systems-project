@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - Sistemi Cloud</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 100%; }
+        h1 { color: #007bff; margin-bottom: 20px; }
+        input[type="url"] { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { width: 96%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #result { margin-top: 20px; font-size: 18px; word-break: break-all; }
+        a { color: #28a745; font-weight: bold; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>URL Shortener</h1>
+    <input type="url" id="longUrl" placeholder="Incolla qui il tuo link" required>
+    <button onclick="shortenLink()">Accorcia Link</button>
+    <div id="result"></div>
+</div>
+
+<script>
+    async function shortenLink() {
+        const urlInput = document.getElementById('longUrl').value;
+        const resultDiv = document.getElementById('result');
+        if (!urlInput) return;
+
+        resultDiv.innerHTML = "Generazione in corso...";
+
+        try {
+            const response = await fetch('/api/shorten', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: urlInput })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Genera il link cliccabile usando il dominio/IP corrente (dinamico sia locale che AWS)
+                const fullShortUrl = window.location.origin + data.short_url;
+                resultDiv.innerHTML = `Link Accorciato:<br><a href="${fullShortUrl}" target="_blank">${fullShortUrl}</a>`;
+            } else {
+                resultDiv.innerHTML = `<span style="color:red;">Errore: ${data.error}</span>`;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = '<span style="color:red;">Errore di connessione al backend</span>';
+        }
+    }
+</script>
+
+</body>
+</html>
