@@ -24,7 +24,8 @@ jobs:
       - uses: opentofu/setup-opentofu@v1
 
       - name: tofu init
-        run: tofu -chdir=terraform init
+        run: tofu init
+        working-directory: infrastructure/opentofu
 
       - name: Delete SSM parameters
         run: |
@@ -32,4 +33,5 @@ jobs:
           aws ssm delete-parameter --name "/k8s/join-command" || echo "Parameter join-command not found, not a failure"
 
       - name: tofu destroy
-        run: tofu -chdir=infrastructure/opentofu destroy -auto-approve 
+        run: tofu destroy -auto-approve 
+        working-directory: infrastructure/opentofu
