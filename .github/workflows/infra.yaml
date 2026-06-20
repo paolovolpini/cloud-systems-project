@@ -74,6 +74,10 @@ jobs:
       - name: Kubectl setup
         uses: azure/setup-kubectl@v4
 
+      - name: Tell working directory
+        run: pwd
+        working-directory: infrastructure/opentofu
+        
       - name: tofu init
         run: tofu init
         working-directory: infrastructure/opentofu
@@ -81,7 +85,7 @@ jobs:
       - name: tofu apply
         run: tofu apply -auto-approve
         working-directory: infrastructure/opentofu
-        
+
       - name: Get kubeconfig
         run: |
           aws ssm get-parameter \
