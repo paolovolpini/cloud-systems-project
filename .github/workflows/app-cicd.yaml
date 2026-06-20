@@ -60,6 +60,25 @@ jobs:
         run: |
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
           TAG=${{ github.sha }}
+
+          if [ "${{ steps.filter.outputs.backend }}" == "true" ]; then
+            BACKEND_TAG=$TAG
+          else
+            BACKEND_TAG=$(aws ecr describe-images \
+              --repository-name shortener-backend \
+              --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+              --output text)
+          fi
+
+          if [ "${{ steps.filter.outputs.frontend }}" == "true" ]; then
+            FRONTEND_TAG=$TAG
+          else
+            FRONTEND_TAG=$(aws ecr describe-images \
+              --repository-name shortener-frontend \
+              --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+              --output text)
+          fi
+          
           sed -i "s|REGISTRY_IP:5000/shortener-backend:TAG|$REGISTRY/shortener-backend:$TAG|g" k8s/backend-deployment.yaml
           sed -i "s|REGISTRY_IP:5000/shortener-frontend:TAG|$REGISTRY/shortener-frontend:$TAG|g" k8s/frontend-deployment.yaml
 
