@@ -16,7 +16,7 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v6
 
@@ -55,10 +55,8 @@ jobs:
 
   apply:
     runs-on: ubuntu-latest
-    needs: plan
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment: production
-    
     steps:
       - uses: actions/checkout@v4
 
@@ -88,10 +86,36 @@ jobs:
         run: tofu apply -auto-approve
         working-directory: infrastructure/opentofu
 
+      # loop smart per aspettare il kubeconfig
+      - name: Attendi kubeconfig su SSM
+        run: |
+          echo "Attendo che il control plane completi l'inizializzazione..."
+          MAX_ATTEMPTS=40        # 40 tentativi
+          SLEEP_SECONDS=30       # ogni 30 secondi = max 20 minuti
+          
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Tentativo $i/$MAX_ATTEMPTS..."
+            
+            if aws ssm get-parameter \
+              --name "/k8s/kubeconfig" \
+              --with-decryption \
+              --region ${{ vars.AWS_REGION }} > /dev/null 2>&1; then
+              echo "Kubeconfig disponibile!"
+              exit 0
+            fi
+            
+            echo "Non ancora disponibile, riprovo tra ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+          
+          echo "Timeout — il control plane non ha completato l'inizializzazione"
+          exit 1
+
+
       - name: Get kubeconfig
         run: |
           aws ssm get-parameter \
-            --name "/k8s/join-command" \
+            --name "/k8s/kubeconfig" \
             --with-decryption \
             --query Parameter.Value \
             --output text > kubeconfig
