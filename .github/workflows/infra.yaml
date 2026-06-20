@@ -91,7 +91,7 @@ jobs:
         run: |
           echo "Attendo che il control plane completi l'inizializzazione..."
           MAX_ATTEMPTS=40        # 40 tentativi
-          SLEEP_SECONDS=30       # ogni 30 secondi = max 20 minuti
+          SLEEP_SECONDS=20       # ogni 20 secondi quindi circa più di 10 min
           
           for i in $(seq 1 $MAX_ATTEMPTS); do
             echo "Tentativo $i/$MAX_ATTEMPTS..."
@@ -121,5 +121,5 @@ jobs:
           chmod 600 kubeconfig
 
       - name: Set postgres db password as k8s secret
-        run: KUBECONFIG=./kubeconfig create secret generic postgres-secret --from-literal=password=${{ secrets.POSTGRE_SECRET }} \
+        run: KUBECONFIG=./kubeconfig kubectl create secret generic postgres-secret --from-literal=password=${{ secrets.POSTGRE_SECRET }} \
             --dry-run=client -o yaml | KUBECONFIG=./kubeconfig kubectl apply -f -
