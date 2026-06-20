@@ -30,11 +30,12 @@ jobs:
         uses: opentofu/setup-opentofu@v1
 
       - name: tofu init
-        run: tofu -chdir=infrastructure/opentofu init
+        run: tofu init
+        working-directory: infrastructure/opentofu
 
       - name: tofu plan
-        run: |
-          tofu -chdir=infrastructure/opentofu plan -out=tfplan 2>&1 | tee plan.txt
+        run: tofu plan -out=tfplan 2>&1 | tee plan.txt
+        working-directory: infrastructure/opentofu
 
       - name: Plan as comment
         if: github.event_name == 'pull_request'
