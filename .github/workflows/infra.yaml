@@ -110,7 +110,6 @@ jobs:
           echo "Timeout — il control plane non ha completato l'inizializzazione"
           exit 1
 
-
       - name: Get kubeconfig
         run: |
           aws ssm get-parameter \
@@ -121,5 +120,6 @@ jobs:
           chmod 600 kubeconfig
 
       - name: Set postgres db password as k8s secret
-        run: KUBECONFIG=./kubeconfig kubectl create secret generic postgres-secret --from-literal=password=${{ secrets.POSTGRE_SECRET }} \
+        run: |
+          KUBECONFIG=./kubeconfig kubectl create secret generic postgres-secret --from-literal=password=${{ secrets.POSTGRE_SECRET }} \
             --dry-run=client -o yaml | KUBECONFIG=./kubeconfig kubectl apply -f -

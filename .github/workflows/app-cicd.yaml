@@ -1,0 +1,83 @@
+name: Update images on application pushes
+
+on:
+  push:
+    branches: [main]
+    paths: ['application/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # per oidc
+
+jobs:
+  cicd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clones repo
+        uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - name: AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: eu-south-1
+
+      - name: ECR login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Builds back-end image if edited
+        if: steps.filter.outputs.backend == 'true'
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: shortener-backend
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$TAG backend/
+          docker push $REGISTRY/$REPOSITORY:$TAG
+
+      - name: Builds front-end image if edited
+        if: steps.filter.outputs.frontend == 'true'
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: shortener-frontend
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$TAG frontend/
+          docker push $REGISTRY/$REPOSITORY:$TAG
+
+      - name: Generate manifests 
+        run: |
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          TAG=${{ github.sha }}
+          sed -i "s|REGISTRY_IP:5000/shortener-backend:TAG|$REGISTRY/shortener-backend:$TAG|g" k8s/backend-deployment.yaml
+          sed -i "s|REGISTRY_IP:5000/shortener-frontend:TAG|$REGISTRY/shortener-frontend:$TAG|g" k8s/frontend-deployment.yaml
+
+      - name: Get kubeconfig
+        run: |
+          aws ssm get-parameter \
+            --name "/k8s/kubeconfig" \
+            --with-decryption \
+            --query Parameter.Value \
+            --output text > kubeconfig
+          chmod 600 kubeconfig
+
+      - name: Apply manifests
+        run: |
+          KUBECONFIG=./kubeconfig kubectl apply -f k8s/        
+
+      - name: Check Kubernetes Rollout Status
+        run: |
+          KUBECONFIG=./kubeconfig kubectl rollout status statefulset/postgres --timeout=120s
+          KUBECONFIG=./kubeconfig kubectl rollout status deployment/shortener-frontend --timeout=120s
+          KUBECONFIG=./kubeconfig kubectl rollout status deployment/shortener-backend --timeout=120s
