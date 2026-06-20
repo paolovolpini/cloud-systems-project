@@ -1,0 +1,35 @@
+name: Destroy infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: eu-south-1
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - name: tofu init
+        run: tofu -chdir=terraform init
+
+      - name: Delete SSM parameters
+        run: |
+          aws ssm delete-parameter --name "/k8s/kubeconfig" || echo "Parameter kubeconfig not found, not a failure"
+          aws ssm delete-parameter --name "/k8s/join-command" || echo "Parameter join-command not found, not a failure"
+
+      - name: tofu destroy
+        run: tofu -chdir=infrastructure/opentofu destroy -auto-approve 
