@@ -38,10 +38,28 @@ apt-get install -y kubelet kubeadm
 apt-mark hold kubelet kubeadm
 systemctl enable kubelet
 
-mkdir -p /etc/containerd/certs.d
-aws ecr get-login-password --region "${aws_region}" \
-  | docker login --username AWS --password-stdin \
-    $(aws sts get-caller-identity --query Account --output text).dkr.ecr.${aws_region}.amazonaws.com
+curl -fsSL https://artifacts.k8s.io/binaries/cloud-provider-aws/v1.36.0/linux/amd64/ecr-credential-provider \
+  -o /usr/local/bin/ecr-credential-provider
+chmod +x /usr/local/bin/ecr-credential-provider
+
+mkdir -p /etc/kubernetes
+cat <<EOF > /etc/kubernetes/credential-provider-config.yaml
+apiVersion: kubelet.config.k8s.io/v1
+kind: CredentialProviderConfig
+providers:
+  - name: ecr-credential-provider
+    matchImages:
+      - "*.dkr.ecr.*.amazonaws.com"
+    defaultCacheDuration: "12h"
+    apiVersion: credentialprovider.kubelet.k8s.io/v1
+EOF
+
+cat <<EOF > /etc/default/kubelet
+KUBELET_EXTRA_ARGS="--image-credential-provider-config=/etc/kubernetes/credential-provider-config.yaml --image-credential-provider-bin-dir=/usr/local/bin"
+EOF
+
+systemctl daemon-reload
+systemctl restart kubelet
 
 until aws ssm get-parameter \
   --name "/k8s/join-command" \

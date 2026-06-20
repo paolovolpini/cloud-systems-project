@@ -31,8 +31,17 @@ resource "aws_iam_role_policy" "control_plane_ssm" {
         "ssm:PutParameter",
         "ssm:GetParameter"
       ]
-      Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.cluster_name}/*"
-    }]
+      Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/k8s/*"
+    },
+    {
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      }]
   })
 }
 
@@ -66,7 +75,7 @@ resource "aws_iam_role_policy" "workers_ssm_ecr" {
       {
         Effect   = "Allow"
         Action   = ["ssm:GetParameter"]
-        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.cluster_name}/*"
+        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/k8s/*"
       },
       {
         Effect = "Allow"
@@ -75,6 +84,13 @@ resource "aws_iam_role_policy" "workers_ssm_ecr" {
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
         ]
         Resource = "*"
       }

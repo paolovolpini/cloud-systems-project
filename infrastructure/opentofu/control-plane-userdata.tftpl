@@ -74,7 +74,7 @@ aws ssm put-parameter \
   --name "/k8s/join-command" \
   --value "$JOIN_COMMAND" \
   --type "SecureString" \
-  --region "${aws_region}"
+  --region "${aws_region}" \
   --overwrite
 
 KUBECONFIG_CONTENT=$(cat /etc/kubernetes/admin.conf | sed "s|https://.*:6443|https://${nlb_dns}:6443|g")
@@ -84,6 +84,6 @@ aws ssm put-parameter \
   --value "$KUBECONFIG_CONTENT" \
   --type "SecureString" \
   --region "${aws_region}" \
-  --tier "Advanced"
+  --tier "Advanced" \
   --overwrite 
   
