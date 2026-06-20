@@ -12,7 +12,7 @@ resource "aws_ecr_repository" "frontend" {
 }
 
 resource "aws_ecr_repository" "backend" {
-  name                 = "$shortener-backend"
+  name                 = "shortener-backend"
   image_tag_mutability = "MUTABLE"
   image_scanning_configuration { scan_on_push = true }
   tags = { Name = "${var.cluster_name}-backend" }
