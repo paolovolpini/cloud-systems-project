@@ -5,14 +5,14 @@
 # mutable permette di poter prendere sempre la latest image
 
 resource "aws_ecr_repository" "frontend" {
-  name                 = "${var.cluster_name}/frontend"
+  name                 = "shortener-frontend"
   image_tag_mutability = "MUTABLE"
   image_scanning_configuration { scan_on_push = true }
   tags = { Name = "${var.cluster_name}-frontend" }
 }
 
 resource "aws_ecr_repository" "backend" {
-  name                 = "${var.cluster_name}/backend"
+  name                 = "$shortener-backend"
   image_tag_mutability = "MUTABLE"
   image_scanning_configuration { scan_on_push = true }
   tags = { Name = "${var.cluster_name}-backend" }
