@@ -1,8 +1,6 @@
 #!/bin/bash
 set -eux
 
-echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
-
 apt-get update -y
 apt-get install -y apt-transport-https ca-certificates curl gnupg awscli
 
@@ -40,8 +38,8 @@ apt-get install -y kubelet kubeadm
 apt-mark hold kubelet kubeadm
 systemctl enable kubelet
 
-curl -fsSL https://artifacts.k8s.io/binaries/cloud-provider-aws/v1.36.0/linux/amd64/ecr-credential-provider \
-  -o /usr/local/bin/ecr-credential-provider
+curl -Lo /usr/local/bin/ecr-credential-provider \
+  https://artifacts.k8s.io/binaries/cloud-provider-aws/v1.29.0/linux/amd64/ecr-credential-provider-linux-amd64
 chmod +x /usr/local/bin/ecr-credential-provider
 
 mkdir -p /etc/kubernetes
@@ -60,7 +58,6 @@ cat <<EOF > /etc/default/kubelet
 KUBELET_EXTRA_ARGS="--image-credential-provider-config=/etc/kubernetes/credential-provider-config.yaml --image-credential-provider-bin-dir=/usr/local/bin"
 EOF
 
-systemctl daemon-reload
 systemctl restart kubelet
 
 until aws ssm get-parameter \
