@@ -98,8 +98,7 @@ jobs:
             
             if aws ssm get-parameter \
               --name "/k8s/kubeconfig" \
-              --with-decryption \
-              --region ${{ vars.AWS_REGION }} > /dev/null 2>&1; then
+              --with-decryption > /dev/null 2>&1; then
               echo "Kubeconfig disponibile!"
               exit 0
             fi
