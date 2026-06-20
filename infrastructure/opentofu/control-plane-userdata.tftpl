@@ -45,7 +45,8 @@ apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 systemctl enable kubelet
 
-PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
 
 kubeadm init \
   --control-plane-endpoint "${nlb_dns}:6443" \
@@ -54,13 +55,11 @@ kubeadm init \
   --pod-network-cidr "${pod_cidr}" \
   --cri-socket unix:///run/containerd/containerd.sock
 
-mkdir -p /root/.kube
-cp /etc/kubernetes/admin.conf /root/.kube/config
+export KUBECONFIG=/etc/kubernetes/admin.conf
 
 kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yaml
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
 
 kubectl patch svc ingress-nginx-controller \
   -n ingress-nginx \
