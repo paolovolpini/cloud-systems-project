@@ -34,7 +34,7 @@ jobs:
 
       - name: tofu plan
         run: |
-          tofu -chdir=infrastructure/opentofu plan -out=tfplan 2>&1 | tee plan_output.txt
+          tofu -chdir=infrastructure/opentofu plan -out=tfplan 2>&1 | tee plan.txt
 
       - name: Plan as comment
         if: github.event_name == 'pull_request'
