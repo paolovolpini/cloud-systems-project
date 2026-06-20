@@ -1,0 +1,93 @@
+name: Infrastructure workflow
+
+on:
+  push:
+    branches: [main]
+    paths: ['infrastructure/**']
+  pull_request:
+    paths: ['infrastructure/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write # per oidc
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: eu-south-1
+
+      - name: OpenTofu setup
+        uses: opentofu/setup-opentofu@v1
+
+      - name: tofu init
+        run: tofu chdir=infrastructure/opentofu init
+
+      - name: tofu plan
+        run: |
+          tofu chdir=infrastructure/opentofu plan -out=tfplan 2>&1 | tee plan_output.txt
+
+      - name: Plan as comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan.txt', 'utf8');
+            const truncated = plan.length > 60000 ? plan.slice(0, 60000) + '\n...(truncated)' : plan;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### OpenTofu Plan\n\`\`\`\n${truncated}\n\`\`\``
+            });
+
+
+  apply:
+    runs-on: ubuntu-latest
+    needs: plan
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ARN_ROLE }}
+          aws-region: eu-south-1
+
+      - name: Opentofu setup
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Kubectl setup
+        uses: azure/setup-kubectl@v4
+
+      - name: tofu init
+        run: tofu -chdir=infrastructure/opentofu init
+
+      - name: tofu apply
+        run: tofu -chdir=infrastructure/opentofu apply -auto-approve
+      
+      - name: Get kubeconfig
+        run: |
+          aws ssm get-parameter \
+            --name "/k8s/join-command" \
+            --with-decryption \
+            --query Parameter.Value \
+            --output text > kubeconfig
+          chmod 600 kubeconfig
+
+      - name: Set postgres db password as k8s secret
+        run: KUBECONFIG=./kubeconfig create secret generic postgres-secret --from-literal=password=${{ secrets.POSTGRE_SECRET }} \
+            --dry-run=client -o yaml | KUBECONFIG=./kubeconfig kubectl apply -f -

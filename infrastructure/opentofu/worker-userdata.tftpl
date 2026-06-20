@@ -1,0 +1,59 @@
+#!/bin/bash
+set -eux
+
+apt-get update -y
+apt-get install -y apt-transport-https ca-certificates curl gnupg awscli
+
+swapoff -a
+sed -i '/swap/d' /etc/fstab
+
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sysctl --system
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update -y
+apt-get install -y containerd.io
+mkdir -p /etc/containerd
+containerd config default > /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+systemctl restart containerd
+systemctl enable containerd
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.36/deb/Release.key \
+  | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] \
+  https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /" \
+  > /etc/apt/sources.list.d/kubernetes.list
+apt-get update -y
+apt-get install -y kubelet kubeadm
+apt-mark hold kubelet kubeadm
+systemctl enable kubelet
+
+mkdir -p /etc/containerd/certs.d
+aws ecr get-login-password --region "${aws_region}" \
+  | docker login --username AWS --password-stdin \
+    $(aws sts get-caller-identity --query Account --output text).dkr.ecr.${aws_region}.amazonaws.com
+
+until aws ssm get-parameter \
+  --name "/k8s/join-command" \
+  --with-decryption > /dev/null 2>&1; do
+  sleep 15
+done
+
+JOIN_COMMAND=$(aws ssm get-parameter \
+  --name "/k8s/join-command" \
+  --with-decryption \
+  --query Parameter.Value \
+  --region "${aws_region}" \
+  --output text)
+
+eval "$JOIN_COMMAND"
