@@ -10,12 +10,14 @@ resource "aws_instance" "control_plane" {
   vpc_security_group_ids = [aws_security_group.k8s.id]
   iam_instance_profile   = aws_iam_instance_profile.control_plane.name
 
+  depends_on = [aws_nat_gateway.main]
+
   
-  user_data = templatefile("${path.module}/control-plane-userdata.tftpl", {
+  user_data = base64encode(templatefile("${path.module}/control-plane-userdata.tftpl", {
     aws_region   = var.aws_region
     nlb_dns      = aws_lb.main.dns_name
     pod_cidr     = "10.244.0.0/16" # cidr di flannel
-  })
+  }))
 
   tags = { Name = "${var.cluster_name}-control-plane" }
 }
@@ -61,6 +63,8 @@ resource "aws_autoscaling_group" "workers" {
   # splat operator (https://opentofu.org/docs/language/expressions/splat/)
   vpc_zone_identifier = aws_subnet.private[*].id
   target_group_arns   = [aws_lb_target_group.http.arn]
+
+  depends_on = [aws_nat_gateway.main]
 
   launch_template {
     id      = aws_launch_template.workers.id
