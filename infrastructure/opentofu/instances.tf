@@ -59,8 +59,6 @@ resource "aws_autoscaling_group" "workers" {
   name                = "${var.cluster_name}-workers-asg"
   min_size            = var.worker_min_size
   max_size            = var.worker_max_size
-  desired_capacity    = var.worker_desired
-  # splat operator (https://opentofu.org/docs/language/expressions/splat/)
   vpc_zone_identifier = aws_subnet.private[*].id
   target_group_arns   = [aws_lb_target_group.http.arn]
 

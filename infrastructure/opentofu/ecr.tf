@@ -7,6 +7,7 @@
 resource "aws_ecr_repository" "frontend" {
   name                 = "shortener-frontend"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
   image_scanning_configuration { scan_on_push = true }
   tags = { Name = "${var.cluster_name}-frontend" }
 }
@@ -14,6 +15,7 @@ resource "aws_ecr_repository" "frontend" {
 resource "aws_ecr_repository" "backend" {
   name                 = "shortener-backend"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
   image_scanning_configuration { scan_on_push = true }
   tags = { Name = "${var.cluster_name}-backend" }
 }
