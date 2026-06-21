@@ -84,3 +84,56 @@ resource "aws_autoscaling_group" "workers" {
     propagate_at_launch = true
   }
 }
+
+# per le policy di scaling:
+# - se maggiore del 60%, aggiungi un nodo
+# - se minore del 30%, togli un nodo
+resource "aws_autoscaling_policy" "scale_up" {
+  name                   = "${var.cluster_name}-scale-up"
+  autoscaling_group_name = aws_autoscaling_group.workers.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = 1
+  cooldown               = 120
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "${var.cluster_name}-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 70
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.workers.name
+  }
+
+  alarm_actions = [aws_autoscaling_policy.scale_up.arn]
+}
+
+resource "aws_autoscaling_policy" "scale_down" {
+  name                   = "${var.cluster_name}-scale-down"
+  autoscaling_group_name = aws_autoscaling_group.workers.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = -1
+  cooldown               = 120
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "${var.cluster_name}-cpu-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 30
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.workers.name
+  }
+
+  alarm_actions = [aws_autoscaling_policy.scale_down.arn]
+}
