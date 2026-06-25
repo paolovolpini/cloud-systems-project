@@ -10,7 +10,7 @@ Il seguente documento illustra la struttura e il funzionamento dell'infrastruttu
 
 Obiettivo del progetto è la realizzazione di un'infrastruttura cloud usando AWS. L'infrastruttura ospiterà un'applicazione web eseguita un cluster Kubernetes e supporterà meccanismi per garantire continuità operativa. Lo schema a seguire offre una rappresentazione visiva di quanto sarà discusso in sezione:
 
-![schema](<Progetto Cloud.drawio.png>)
+![schema](./Progetto%20Cloud.drawio.png)
 
 L'infrastruttura realizzata prevede una Virtual Private Network (da ora abbreviata VPC) con sottoreti private e pubbliche distribuite su due Availability Zone (da ora abbreviato AZ). Nello specifico, per ogni AZ è presente una sottorete privata e una sottorete pubblica:
 
