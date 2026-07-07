@@ -48,7 +48,7 @@ Per il punto $1.$ è necessario andare nella Console IAM, definendo:
 Per il punto $2.$, è necessario creare un ruolo IAM sempre dall'apposita Console, definendo:
 
 - "Identità web" come tipo di entità attendibile, specificando come provider di identità e audience i parametri precedentemente specificati;
-- le autorizzazioni necessarie per operare con ECR, S3, SSM, NLB, IAM, EC2 e DynamoDB. Per semplificare il set di policy, è possibile associare il set di policy `AmazonDynamoDBFullAccess`, `AmazonEC2FullAccess`, `AmazonS3FullAccess`, `AmazonSSMFullAccess`, `ElasticLoadBalancingFullAccess`, `IAMFullAccess`, `AmazonDynamoDBFullAccess`.
+- le autorizzazioni necessarie per operare con ECR, S3, SSM, NLB, IAM, EC2 e DynamoDB. Per semplificare il set di policy, è possibile associare il set di policy `AmazonDynamoDBFullAccess`, `AmazonEC2FullAccess`, `AmazonS3FullAccess`, `AmazonSSMFullAccess`, `ElasticLoadBalancingFullAccess`, `IAMFullAccess`, `AmazonEC2ContainerRegistryFullAccess`.
 
 Creato il ruolo, è necessario salvare l'ARN (Amazon Resource Name).
 
@@ -58,6 +58,8 @@ Memorizzato l'ARN, è possibile creare un *fork* della *repository*. È necessar
 
 - `ARN_ROLE`, che contiene l'ARN del ruolo IAM di AWS precedentemente creato;
 - `POSTGRE_SECRET`, una stringa contenente la password che verrà utilizzata per l'inizializzazione del database PostgreSQL.
+
+La repository forkata **non** avrà le GitHub Actions attivate. È necessario andare sul pannello Actions e attivarle esplicitamente.
 
 Infine, è necessario impostare correttamente il nome del bucket S3 utilizzato per la memorizzazione dello stato OpenTofu `terraform.tfstate`, modificando l'attributo `bucket` del backend `s3` presente nel sorgente `providers.tf` con il nome del bucket creato nell'account. Poiché OpenTofu richiede anche una tabella DynamoDB per lo *state locking*, è necessario creare anche questa con i seguenti requisiti:
 
